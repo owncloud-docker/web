@@ -1,0 +1,43 @@
+FROM docker.io/alpine:3.22@sha256:310c62b5e7ca5b08167e4384c68db0fd2905dd9c7493756d356e893909057601 AS downloader
+
+ARG VERSION
+
+RUN apk add --no-cache curl
+
+RUN BASE_URL="https://github.com/owncloud/web/releases/download/v${VERSION}" && \
+  curl -fsSL "${BASE_URL}/web.tar.gz" -o /tmp/web.tar.gz && \
+  curl -fsSL "${BASE_URL}/sha256sum.txt" -o /tmp/sha256sum.txt && \
+  cd /tmp && grep "web.tar.gz" sha256sum.txt | sha256sum -c - && \
+  mkdir -p /var/lib/nginx/html && \
+  tar -xzf /tmp/web.tar.gz -C /var/lib/nginx/html
+
+FROM docker.io/nginx:alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+
+ARG VERSION=""
+ARG REVISION=""
+
+LABEL maintainer="ownCloud GmbH <devops@owncloud.com>" \
+  org.opencontainers.image.title="ownCloud Web" \
+  org.opencontainers.image.vendor="ownCloud GmbH" \
+  org.opencontainers.image.authors="ownCloud GmbH" \
+  org.opencontainers.image.description="ownCloud Web - User interface for ownCloud" \
+  org.opencontainers.image.licenses="AGPL-3.0" \
+  org.opencontainers.image.documentation="https://github.com/owncloud/web" \
+  org.opencontainers.image.url="https://hub.docker.com/r/owncloud/web" \
+  org.opencontainers.image.source="https://github.com/owncloud/web" \
+  org.opencontainers.image.version="${VERSION}" \
+  org.opencontainers.image.revision="${REVISION}"
+
+COPY overlay/ /
+COPY --from=downloader /var/lib/nginx/html /var/lib/nginx/html
+
+RUN chown -R nginx:nginx /var/cache/nginx /var/log/nginx /var/lib/nginx && \
+  chown nginx:nginx /run
+
+EXPOSE 8080
+
+USER nginx
+
+STOPSIGNAL SIGTERM
+
+CMD ["nginx", "-g", "daemon off;"]

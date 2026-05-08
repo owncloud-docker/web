@@ -1,0 +1,52 @@
+name: Docker CI
+
+on:
+  push:
+    branches: [master]
+    tags: ["*"]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  lint:
+    uses: owncloud-docker/ubuntu/.github/workflows/lint-editorconfig.yml@master
+
+  build:
+    name: build (${{ matrix.release.version }})
+    needs: lint
+    uses: owncloud-docker/ubuntu/.github/workflows/docker-build.yml@master
+    with:
+      docker-repo-name: owncloud/web
+      docker-tag: ${{ matrix.release.version }}
+      docker-context: .
+      docker-file: ./Dockerfile.multiarch
+      docker-hub-username: ${{ vars.DOCKERHUB_USERNAME }}
+      docker-build-args: |
+        VERSION=${{ matrix.release.version }}
+        REVISION=${{ github.sha }}
+      docker-extra-tags: ${{ matrix.release.extra-tags }}
+      push: ${{ startsWith(github.ref, 'refs/tags/') }}
+      smoke-test-cmd: nginx -t
+    secrets:
+      docker-hub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    strategy:
+      matrix:
+        release:
+          - version: "12.3.3"
+            extra-tags: |
+              12.3
+              12
+              latest
+
+  update-docker-hub-description:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    uses: owncloud-docker/ubuntu/.github/workflows/docker-hub-desc.yml@master
+    with:
+      docker-repo-name: owncloud/web
+      docker-repo-description: ownCloud Web - User interface for ownCloud
+      docker-hub-username: ${{ vars.DOCKERHUB_USERNAME }}
+    secrets:
+      docker-hub-password: ${{ secrets.DOCKERHUB_TOKEN }}

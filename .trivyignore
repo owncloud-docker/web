@@ -1,0 +1,3 @@
+# https://github.com/owncloud-docker/web/issues/1
+# Upstream nginx:alpine image not yet rebuilt with fix; remove once nginx:alpine ships nghttp2-libs >= 1.68.1
+CVE-2026-27135

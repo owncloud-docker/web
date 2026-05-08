@@ -20,14 +20,13 @@ The web UI is served on port 8080.
 
 ## Releasing a new version
 
-1. Update `version` and `extra-tags` in the matrix in `.github/workflows/main.yml`
-2. Commit and push a matching tag:
+1. On a feature branch, update `version` and `extra-tags` in the matrix in `.github/workflows/main.yml`
+2. Open a PR, get it reviewed and merged into `master`
+3. Tag the merge commit and push the tag:
 
 ```bash
-git add .github/workflows/main.yml
-git commit -s -m "chore: release v<VERSION>"
 git tag v<VERSION>
-git push origin master v<VERSION>
+git push origin v<VERSION>
 ```
 
 The CI workflow builds multi-arch images (`linux/amd64`, `linux/arm64`), runs a Trivy security scan, and pushes to Docker Hub only on tag events.
